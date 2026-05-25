@@ -1,10 +1,7 @@
-
 import streamlit as st
 import pandas as pd
 import numpy as np
 import joblib
-
-from tensorflow.keras.models import load_model
 
 from sklearn.metrics import (
     classification_report,
@@ -27,13 +24,16 @@ st.set_page_config(
 # =====================================================
 
 st.title("🚢 Titanic Survival Prediction")
-st.write("Predict passenger survival using a trained Neural Network")
+
+st.write(
+    "Predict passenger survival using Neural Network"
+)
 
 # =====================================================
 # LOAD MODEL & SCALER
 # =====================================================
 
-model = load_model("titanic.keras")
+model = joblib.load("titanic_model.pkl")
 
 scaler = joblib.load("scaler.pkl")
 
@@ -44,44 +44,36 @@ scaler = joblib.load("scaler.pkl")
 data = pd.read_csv("Titanic-Dataset.csv")
 
 # =====================================================
-# PREPROCESS DATA
+# PREPROCESSING
 # =====================================================
 
 X = data[['Pclass', 'Age', 'Fare']].copy()
 
 y = data['Survived']
 
-# Fill missing values
 X['Age'] = X['Age'].fillna(X['Age'].mean())
 
-# Scale data
 X_scaled = scaler.transform(X)
 
 # =====================================================
 # MODEL EVALUATION
 # =====================================================
 
-predictions = model.predict(X_scaled)
+y_pred = model.predict(X_scaled)
 
-# Convert probabilities to binary
-y_pred = (predictions > 0.5).astype(int)
-
-# Accuracy
 accuracy = accuracy_score(y, y_pred)
 
-# Classification Report
 report = classification_report(y, y_pred)
 
-# Confusion Matrix
 cm = confusion_matrix(y, y_pred)
 
 # =====================================================
-# DISPLAY MODEL PERFORMANCE
+# DISPLAY PERFORMANCE
 # =====================================================
 
 st.subheader("📊 Model Performance")
 
-st.write(f"### Accuracy: {accuracy:.4f}")
+st.write(f"Accuracy: {accuracy:.4f}")
 
 st.text("Classification Report")
 st.text(report)
@@ -90,7 +82,7 @@ st.text("Confusion Matrix")
 st.write(cm)
 
 # =====================================================
-# USER INPUT SECTION
+# USER INPUTS
 # =====================================================
 
 st.subheader("🧾 Enter Passenger Details")
@@ -115,35 +107,31 @@ fare = st.slider(
 )
 
 # =====================================================
-# PREDICTION BUTTON
+# PREDICTION
 # =====================================================
 
 if st.button("Predict Survival"):
 
-    # Create dataframe
     sample_df = pd.DataFrame({
         'Pclass': [pclass],
         'Age': [age],
         'Fare': [fare]
     })
 
-    # Normalize input
     sample_scaled = scaler.transform(sample_df)
 
-    # Prediction
     prediction = model.predict(sample_scaled)
 
-    probability = prediction[0][0]
-
-    # =================================================
-    # DISPLAY RESULT
-    # =================================================
+    probability = model.predict_proba(sample_scaled)
 
     st.subheader("🎯 Prediction Result")
 
-    st.write(f"Survival Probability: {probability:.4f}")
+    st.write(
+        f"Survival Probability: "
+        f"{probability[0][1]:.4f}"
+    )
 
-    if probability >= 0.5:
+    if prediction[0] == 1:
         st.success("✅ Passenger Survived")
     else:
         st.error("❌ Passenger Did Not Survive")
