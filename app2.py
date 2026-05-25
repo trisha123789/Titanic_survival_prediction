@@ -1,7 +1,10 @@
 import streamlit as st
 import pandas as pd
 import numpy as np
-import joblib
+
+from sklearn.model_selection import train_test_split
+from sklearn.preprocessing import MinMaxScaler
+from sklearn.neural_network import MLPClassifier
 
 from sklearn.metrics import (
     classification_report,
@@ -26,16 +29,8 @@ st.set_page_config(
 st.title("🚢 Titanic Survival Prediction")
 
 st.write(
-    "Predict passenger survival using Neural Network"
+    "Predict passenger survival using Artificial Neural Network"
 )
-
-# =====================================================
-# LOAD MODEL & SCALER
-# =====================================================
-
-model = joblib.load("titanic_model.pkl")
-
-scaler = joblib.load("titanic_model.pkl")
 
 # =====================================================
 # LOAD DATASET
@@ -51,21 +46,57 @@ X = data[['Pclass', 'Age', 'Fare']].copy()
 
 y = data['Survived']
 
+# Fill Missing Values
 X['Age'] = X['Age'].fillna(X['Age'].mean())
 
-X_scaled = scaler.transform(X)
+# =====================================================
+# SCALING
+# =====================================================
+
+scaler = MinMaxScaler()
+
+X_scaled = scaler.fit_transform(X)
+
+# =====================================================
+# TRAIN TEST SPLIT
+# =====================================================
+
+X_train, X_test, y_train, y_test = train_test_split(
+    X_scaled,
+    y,
+    test_size=0.2,
+    random_state=42
+)
+
+# =====================================================
+# CREATE ANN MODEL
+# =====================================================
+
+model = MLPClassifier(
+    hidden_layer_sizes=(2,),
+    activation='logistic',
+    learning_rate_init=0.01,
+    max_iter=1000,
+    random_state=42
+)
+
+# =====================================================
+# TRAIN MODEL
+# =====================================================
+
+model.fit(X_train, y_train)
 
 # =====================================================
 # MODEL EVALUATION
 # =====================================================
 
-y_pred = model.predict(X_scaled)
+y_pred = model.predict(X_test)
 
-accuracy = accuracy_score(y, y_pred)
+accuracy = accuracy_score(y_test, y_pred)
 
-report = classification_report(y, y_pred)
+report = classification_report(y_test, y_pred)
 
-cm = confusion_matrix(y, y_pred)
+cm = confusion_matrix(y_test, y_pred)
 
 # =====================================================
 # DISPLAY PERFORMANCE
@@ -73,7 +104,7 @@ cm = confusion_matrix(y, y_pred)
 
 st.subheader("📊 Model Performance")
 
-st.write(f"Accuracy: {accuracy:.4f}")
+st.write(f"### Accuracy: {accuracy:.4f}")
 
 st.text("Classification Report")
 st.text(report)
@@ -112,17 +143,25 @@ fare = st.slider(
 
 if st.button("Predict Survival"):
 
+    # Create DataFrame
     sample_df = pd.DataFrame({
         'Pclass': [pclass],
         'Age': [age],
         'Fare': [fare]
     })
 
+    # Scale Input
     sample_scaled = scaler.transform(sample_df)
 
+    # Prediction
     prediction = model.predict(sample_scaled)
 
+    # Probability
     probability = model.predict_proba(sample_scaled)
+
+    # =================================================
+    # DISPLAY RESULT
+    # =================================================
 
     st.subheader("🎯 Prediction Result")
 
