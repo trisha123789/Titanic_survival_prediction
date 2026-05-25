@@ -35,7 +35,7 @@ st.write(
 
 model = joblib.load("titanic_model.pkl")
 
-scaler = joblib.load("scaler.pkl")
+scaler = joblib.load("titanic_model.pkl")
 
 # =====================================================
 # LOAD DATASET
